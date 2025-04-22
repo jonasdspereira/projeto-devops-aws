@@ -1,7 +1,13 @@
 resource "aws_launch_template" "web_server" {
-  name_prefix = "web-server"
-  image_id = "ami-0c55b159cbfafe1f0" # Amazon Linux 2
+  name_prefix   = "web-server"
+  image_id      = "ami-0c55b159cbfafe1f0" # Amazon Linux 2
   instance_type = "t2.micro"
+  
+  network_interfaces {
+    associate_public_ip_address = true
+    security_groups = [aws_security_group.instance.id]
+  }
+  
   user_data = base64encode(<<-EOF
     #!/bin/bash
     yum install -y httpd
@@ -11,11 +17,34 @@ resource "aws_launch_template" "web_server" {
   )
 }
 
+resource "aws_security_group" "instance" {
+  name_prefix = "web-server"
+  vpc_id      = var.vpc_id
+
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
 resource "aws_autoscaling_group" "web_asg" {
-  desired_capacity = 2
-  max_size = 4
-  min_size = 1
-  vpc_zone_identifier = aws_subnet.public[*].id
-  target_group_arns = [aws_lb_target_group.web.arn]
-  launch_template { id = aws_launch_template.web_server.id }
+  desired_capacity    = 2
+  max_size           = 4
+  min_size           = 1
+  vpc_zone_identifier = var.public_subnets
+  target_group_arns  = [var.target_group_arn]
+  
+  launch_template {
+    id = aws_launch_template.web_server.id
+    version = "$Latest"
+  }
 }
