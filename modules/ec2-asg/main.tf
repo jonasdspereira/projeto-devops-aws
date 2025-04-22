@@ -1,6 +1,6 @@
 resource "aws_launch_template" "web_server" {
   name_prefix   = "web-server"
-  image_id      = "ami-0c55b159cbfafe1f0" # Amazon Linux 2
+  image_id      = "ami-0a0e5d9c7acc336f1" 
   instance_type = "t2.micro"
   
   network_interfaces {
