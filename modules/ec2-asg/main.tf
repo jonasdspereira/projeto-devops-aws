@@ -20,78 +20,28 @@ resource "aws_launch_template" "web_server" {
     
     # Configura o Apache para iniciar na inicialização
     sudo systemctl enable apache2
-    
+
     # Obtém o ID da instância e a AZ
     INSTANCE_ID=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)
     AVAILABILITY_ZONE=$(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone)
     PRIVATE_IP=$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)
     PUBLIC_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
+ 
     
-    # Cria a página inicial com informações da instância
-    cat <<HTML | sudo tee /var/www/html/index.html
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Instance Info</title>
-        <style>
-            body {
-                font-family: Arial, sans-serif;
-                margin: 40px;
-                background-color: #f0f0f0;
-            }
-            .container {
-                background-color: white;
-                padding: 20px;
-                border-radius: 8px;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                max-width: 600px;
-                margin: 0 auto;
-            }
-            .info-item {
-                margin: 10px 0;
-                padding: 10px;
-                background-color: #f8f9fa;
-                border-radius: 4px;
-            }
-            h1 {
-                color: #333;
-                text-align: center;
-            }
-            .timestamp {
-                text-align: center;
-                color: #666;
-                font-size: 0.9em;
-            }
-        </style>
-    </head>
+    # Cria a página inicial
+    echo "<html>
     <body>
-        <div class="container">
-            <h1>Hello from EC2 Instance!</h1>
-            <div class="info-item">
-                <strong>Instance ID:</strong> $INSTANCE_ID
-            </div>
-            <div class="info-item">
-                <strong>Availability Zone:</strong> $AVAILABILITY_ZONE
-            </div>
-            <div class="info-item">
-                <strong>Private IP:</strong> $PRIVATE_IP
-            </div>
-            <div class="info-item">
-                <strong>Public IP:</strong> $PUBLIC_IP
-            </div>
-            <div class="timestamp">
-                Page generated at: $(date)
-            </div>
-        </div>
-        <script>
-            // Atualiza a timestamp a cada minuto
-            setInterval(() => {
-                document.querySelector('.timestamp').textContent = 'Page generated at: ' + new Date().toString();
-            }, 60000);
-        </script>
+    <h1>Hello Bootcamp DevOps!</h1>
+    <h1>Hello from EC2 Instance!</h1>
+    <strong>Instance ID:</strong> $INSTANCE_ID
+    <strong>Availability Zone:</strong> $AVAILABILITY_ZONE
+    <strong>Private IP:</strong> $PRIVATE_IP
+    <strong>Public IP:</strong> $PUBLIC_IP
+    <h1>Page generated at:</h1> $(date)
+
+    <p>Instance is running!</p>
     </body>
-    </html>
-HTML
+    </html>" | sudo tee /var/www/html/index.html
     
     # Configura permissões corretas
     sudo chown -R www-data:www-data /var/www/html
