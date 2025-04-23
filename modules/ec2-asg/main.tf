@@ -16,7 +16,7 @@ resource "aws_launch_template" "web_server" {
     sudo apt-get upgrade -y
     
     # Instala o Apache
-    sudo apt-get install -y apache2 curl
+    sudo apt-get install -y apache2
     
     # Configura o Apache para iniciar na inicialização
     sudo systemctl enable apache2
@@ -106,6 +106,9 @@ HTML
       sudo journalctl -u apache2
       exit 1
     fi
+    
+    # Instala ferramentas úteis para debug
+    sudo apt-get install -y curl net-tools
     EOF
   )
 
