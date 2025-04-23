@@ -206,3 +206,55 @@ resource "aws_autoscaling_group" "web_asg" {
   # Adiciona dependência explícita das subnets
   depends_on = [var.public_subnets]
 }
+
+# Alarme para escalar para cima (CPU > 50%)
+resource "aws_cloudwatch_metric_alarm" "cpu_high" {
+  alarm_name          = "cpu-utilization-high"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = "2"
+  metric_name         = "CPUUtilization"
+  namespace           = "AWS/EC2"
+  period             = "60"
+  statistic          = "Average"
+  threshold          = "50"
+  alarm_description  = "Escala para cima quando a CPU ultrapassa 50%"
+  alarm_actions      = [aws_autoscaling_policy.scale_up.arn]
+  dimensions = {
+    AutoScalingGroupName = aws_autoscaling_group.web_asg.name
+  }
+}
+
+# Política de escalar para cima
+resource "aws_autoscaling_policy" "scale_up" {
+  name                   = "scale-up"
+  scaling_adjustment     = 1
+  adjustment_type        = "ChangeInCapacity"
+  cooldown              = 60
+  autoscaling_group_name = aws_autoscaling_group.web_asg.name
+}
+
+# Alarme para escalar para baixo (CPU < 30%)
+resource "aws_cloudwatch_metric_alarm" "cpu_low" {
+  alarm_name          = "cpu-utilization-low"
+  comparison_operator = "LessThanThreshold"
+  evaluation_periods  = "2"
+  metric_name         = "CPUUtilization"
+  namespace           = "AWS/EC2"
+  period             = "60"
+  statistic          = "Average"
+  threshold          = "30"
+  alarm_description  = "Escala para baixo quando a CPU fica abaixo de 30%"
+  alarm_actions      = [aws_autoscaling_policy.scale_down.arn]
+  dimensions = {
+    AutoScalingGroupName = aws_autoscaling_group.web_asg.name
+  }
+}
+
+# Política de escalar para baixo
+resource "aws_autoscaling_policy" "scale_down" {
+  name                   = "scale-down"
+  scaling_adjustment     = -1
+  adjustment_type        = "ChangeInCapacity"
+  cooldown              = 60
+  autoscaling_group_name = aws_autoscaling_group.web_asg.name
+}
