@@ -1,6 +1,6 @@
 resource "aws_launch_template" "web_server" {
   name_prefix   = "web-server"
-  image_id      = "ami-0a0e5d9c7acc336f1"
+  image_id      = "ami-0a0e5d9c7acc336f1"  # AMI Ubuntu
   instance_type = "t2.micro"
   
   network_interfaces {
@@ -12,30 +12,34 @@ resource "aws_launch_template" "web_server" {
   user_data = base64encode(<<-EOF
     #!/bin/bash
     # Atualiza o sistema
-    yum update -y
+    sudo apt-get update
+    sudo apt-get upgrade -y
     
-    # Instala o Apache e outras ferramentas necessárias
-    yum install -y httpd ec2-instance-connect
+    # Instala o Apache
+    sudo apt-get install -y apache2
     
     # Configura o Apache para iniciar na inicialização
-    systemctl enable httpd
+    sudo systemctl enable apache2
     
     # Cria a página inicial
-    echo "<html><body><h1>Hello DevOps Bootcamp!</h1><p>Instance is running!</p></body></html>" > /var/www/html/index.html
+    echo "<html><body><h1>Hello DevOps Bootcamp!</h1><p>Instance is running!</p></body></html>" | sudo tee /var/www/html/index.html
     
     # Configura permissões corretas
-    chown -R apache:apache /var/www/html
-    chmod -R 755 /var/www/html
+    sudo chown -R www-data:www-data /var/www/html
+    sudo chmod -R 755 /var/www/html
     
     # Inicia o Apache
-    systemctl start httpd
+    sudo systemctl start apache2
     
     # Verifica se o Apache está rodando
-    if ! systemctl is-active httpd; then
+    if ! sudo systemctl is-active apache2; then
       echo "Apache failed to start. Checking logs..."
-      journalctl -u httpd
+      sudo journalctl -u apache2
       exit 1
     fi
+    
+    # Instala ferramentas úteis para debug
+    sudo apt-get install -y curl net-tools
     EOF
   )
 
