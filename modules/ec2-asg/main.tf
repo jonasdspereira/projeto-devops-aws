@@ -6,6 +6,7 @@ resource "aws_launch_template" "web_server" {
   network_interfaces {
     associate_public_ip_address = true
     security_groups            = [aws_security_group.instance.id]
+    delete_on_termination      = true
   }
   
   user_data = base64encode(<<-EOF
@@ -16,12 +17,25 @@ resource "aws_launch_template" "web_server" {
     # Instala o Apache e outras ferramentas necessárias
     yum install -y httpd ec2-instance-connect
     
-    # Inicia e habilita o Apache
-    systemctl start httpd
+    # Configura o Apache para iniciar na inicialização
     systemctl enable httpd
     
     # Cria a página inicial
-    echo "<h1>Hello DevOps Bootcamp!</h1>" > /var/www/html/index.html
+    echo "<html><body><h1>Hello DevOps Bootcamp!</h1><p>Instance is running!</p></body></html>" > /var/www/html/index.html
+    
+    # Configura permissões corretas
+    chown -R apache:apache /var/www/html
+    chmod -R 755 /var/www/html
+    
+    # Inicia o Apache
+    systemctl start httpd
+    
+    # Verifica se o Apache está rodando
+    if ! systemctl is-active httpd; then
+      echo "Apache failed to start. Checking logs..."
+      journalctl -u httpd
+      exit 1
+    fi
     EOF
   )
 
@@ -46,13 +60,13 @@ resource "aws_security_group" "instance" {
     description = "SSH access"
   }
 
-  # Permite tráfego HTTP da internet
+  # Permite tráfego HTTP de qualquer lugar
   ingress {
-    from_port       = 80
-    to_port         = 80
-    protocol        = "tcp"
-    security_groups = [var.alb_security_group_id]
-    description     = "HTTP from ALB"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+    description = "HTTP from anywhere"
   }
 
   # Permite todo o tráfego de saída
@@ -69,12 +83,12 @@ resource "aws_security_group" "instance" {
 }
 
 resource "aws_autoscaling_group" "web_asg" {
-  desired_capacity    = 2
-  max_size           = 4
-  min_size           = 1
-  vpc_zone_identifier = var.public_subnets
-  target_group_arns  = [var.target_group_arn]
-  health_check_type  = "ELB"
+  desired_capacity          = 2
+  max_size                 = 4
+  min_size                 = 1
+  vpc_zone_identifier      = var.public_subnets
+  target_group_arns        = [var.target_group_arn]
+  health_check_type        = "ELB"
   health_check_grace_period = 300
   
   launch_template {
@@ -87,4 +101,7 @@ resource "aws_autoscaling_group" "web_asg" {
     value               = "WebServer-ASG"
     propagate_at_launch = true
   }
+
+  # Adiciona dependência explícita das subnets
+  depends_on = [var.public_subnets]
 }
