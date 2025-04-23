@@ -1,0 +1,55 @@
+name: Create Terraform State Bucket
+
+on:
+  workflow_dispatch: # Permite execução manual
+
+jobs:
+  create-state:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.5.0
+
+      - name: Terraform Init
+        working-directory: terraform-state
+        run: terraform init
+
+      - name: Terraform Plan
+        working-directory: terraform-state
+        run: terraform plan -out=tfplan
+
+      - name: Terraform Apply
+        working-directory: terraform-state
+        run: terraform apply -auto-approve tfplan
+
+      - name: Get State Bucket Name
+        working-directory: terraform-state
+        id: get_bucket
+        run: |
+          BUCKET_NAME=$(terraform output -raw state_bucket_name)
+          echo "bucket_name=${BUCKET_NAME}" >> $GITHUB_OUTPUT
+
+      - name: Update Repository Secrets
+        uses: actions/github-script@v6
+        env:
+          BUCKET_NAME: ${{ steps.get_bucket.outputs.bucket_name }}
+        with:
+          script: |
+            const secretName = 'TERRAFORM_STATE_BUCKET';
+            const secretValue = process.env.BUCKET_NAME;
+
+            console.log(`Bucket criado: ${secretValue}`);
+            console.log('Por favor, adicione manualmente este valor como um secret no repositório');
