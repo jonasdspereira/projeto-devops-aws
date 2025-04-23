@@ -24,7 +24,8 @@ O projeto cria a seguinte infraestrutura:
    - Integração com o ALB
 
 ## 📁 Estrutura do Projeto
-````
+
+```
 ├── main.tf # Arquivo principal de configuração
 ├── variables.tf # Definição de variáveis
 ├── outputs.tf # Outputs do projeto
@@ -45,7 +46,7 @@ O projeto cria a seguinte infraestrutura:
 │ └── variables.tf
 └── .github/workflows/ # Configurações do GitHub Actions
 └── terraform.yml # Pipeline de CI/CD
-````
+```
 
 ## 🚀 Como Usar
 
@@ -59,11 +60,12 @@ O projeto cria a seguinte infraestrutura:
 ### Configuração Inicial
 
 1. **Preparar o Estado Remoto**
+
 ```bash
 cd terraform-state
 terraform init
 terraform apply
-````
+```
 
 2. **Configurar Variáveis de Ambiente**
 
