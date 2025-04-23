@@ -137,6 +137,44 @@ resource "aws_launch_template" "web_server" {
     
     # Instala ferramentas úteis para debug
     sudo apt-get install -y curl net-tools
+    
+    # Cria um script de health check
+    echo '#!/bin/bash
+    # Verifica se o Apache está rodando
+    if ! systemctl is-active apache2 > /dev/null; then
+        echo "Apache não está rodando"
+        exit 1
+    fi
+    
+    # Verifica se a página web está respondendo
+    if ! curl -s http://localhost/ > /dev/null; then
+        echo "Página web não está respondendo"
+        exit 1
+    fi
+    
+    # Verifica se o arquivo index.html existe
+    if [ ! -f /var/www/html/index.html ]; then
+        echo "index.html não encontrado"
+        exit 1
+    fi
+    
+    # Verifica as permissões do diretório web
+    if [ ! -r /var/www/html ]; then
+        echo "Permissões incorretas no diretório web"
+        exit 1
+    fi
+    
+    echo "Health check passou"
+    exit 0' | sudo tee /usr/local/bin/health-check.sh
+    
+    # Torna o script executável
+    sudo chmod +x /usr/local/bin/health-check.sh
+    
+    # Adiciona o health check ao crontab
+    echo "* * * * * /usr/local/bin/health-check.sh >> /var/log/health-check.log 2>&1" | sudo tee -a /var/spool/cron/crontabs/root
+    
+    # Executa o health check inicial
+    /usr/local/bin/health-check.sh
     EOF
   )
 
@@ -190,7 +228,7 @@ resource "aws_autoscaling_group" "web_asg" {
   vpc_zone_identifier      = var.public_subnets
   target_group_arns        = [var.target_group_arn]
   health_check_type        = "ELB"
-  health_check_grace_period = 300
+  health_check_grace_period = 600  # Aumentado para 10 minutos
   
   launch_template {
     id      = aws_launch_template.web_server.id
@@ -207,17 +245,40 @@ resource "aws_autoscaling_group" "web_asg" {
   depends_on = [var.public_subnets]
 }
 
-# Alarme para escalar para cima (CPU > 50%)
+# Target Group com configurações mais tolerantes
+resource "aws_lb_target_group" "web" {
+  name     = "web-target-group"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = var.vpc_id
+
+  health_check {
+    enabled             = true
+    interval            = 30
+    path                = "/"
+    port                = "traffic-port"
+    healthy_threshold   = 2
+    unhealthy_threshold = 5
+    timeout             = 5
+    matcher             = "200"
+  }
+
+  tags = {
+    Name = "web-target-group"
+  }
+}
+
+# Alarme para escalar para cima (CPU > 30%)
 resource "aws_cloudwatch_metric_alarm" "cpu_high" {
   alarm_name          = "cpu-utilization-high"
   comparison_operator = "GreaterThanThreshold"
-  evaluation_periods  = "2"
+  evaluation_periods  = "1"
   metric_name         = "CPUUtilization"
   namespace           = "AWS/EC2"
-  period             = "60"
+  period             = "30"
   statistic          = "Average"
-  threshold          = "50"
-  alarm_description  = "Escala para cima quando a CPU ultrapassa 50%"
+  threshold          = "30"
+  alarm_description  = "Escala para cima quando a CPU ultrapassa 30%"
   alarm_actions      = [aws_autoscaling_policy.scale_up.arn]
   dimensions = {
     AutoScalingGroupName = aws_autoscaling_group.web_asg.name
@@ -229,21 +290,21 @@ resource "aws_autoscaling_policy" "scale_up" {
   name                   = "scale-up"
   scaling_adjustment     = 1
   adjustment_type        = "ChangeInCapacity"
-  cooldown              = 60
+  cooldown              = 30
   autoscaling_group_name = aws_autoscaling_group.web_asg.name
 }
 
-# Alarme para escalar para baixo (CPU < 30%)
+# Alarme para escalar para baixo (CPU < 20%)
 resource "aws_cloudwatch_metric_alarm" "cpu_low" {
   alarm_name          = "cpu-utilization-low"
   comparison_operator = "LessThanThreshold"
-  evaluation_periods  = "2"
+  evaluation_periods  = "1"
   metric_name         = "CPUUtilization"
   namespace           = "AWS/EC2"
-  period             = "60"
+  period             = "30"
   statistic          = "Average"
-  threshold          = "30"
-  alarm_description  = "Escala para baixo quando a CPU fica abaixo de 30%"
+  threshold          = "20"
+  alarm_description  = "Escala para baixo quando a CPU fica abaixo de 20%"
   alarm_actions      = [aws_autoscaling_policy.scale_down.arn]
   dimensions = {
     AutoScalingGroupName = aws_autoscaling_group.web_asg.name
@@ -255,6 +316,40 @@ resource "aws_autoscaling_policy" "scale_down" {
   name                   = "scale-down"
   scaling_adjustment     = -1
   adjustment_type        = "ChangeInCapacity"
-  cooldown              = 60
+  cooldown              = 30
   autoscaling_group_name = aws_autoscaling_group.web_asg.name
+}
+
+# Alarme para escalar baseado na latência do ALB
+resource "aws_cloudwatch_metric_alarm" "alb_latency_high" {
+  alarm_name          = "alb-latency-high"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = "1"
+  metric_name         = "TargetResponseTime"
+  namespace           = "AWS/ApplicationELB"
+  period             = "30"
+  statistic          = "Average"
+  threshold          = "0.5"
+  alarm_description  = "Escala para cima quando a latência ultrapassa 0.5 segundos"
+  alarm_actions      = [aws_autoscaling_policy.scale_up.arn]
+  dimensions = {
+    LoadBalancer = var.alb_arn_suffix
+  }
+}
+
+# Alarme para escalar baseado no número de requisições
+resource "aws_cloudwatch_metric_alarm" "request_count_high" {
+  alarm_name          = "request-count-high"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = "1"
+  metric_name         = "RequestCount"
+  namespace           = "AWS/ApplicationELB"
+  period             = "30"
+  statistic          = "Sum"
+  threshold          = "1000"
+  alarm_description  = "Escala para cima quando o número de requisições ultrapassa 1000"
+  alarm_actions      = [aws_autoscaling_policy.scale_up.arn]
+  dimensions = {
+    LoadBalancer = var.alb_arn_suffix
+  }
 }
