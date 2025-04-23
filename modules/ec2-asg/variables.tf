@@ -1,15 +1,20 @@
 variable "vpc_id" {
-  description = "ID da VPC onde o ASG será criado"
+  description = "ID da VPC"
   type        = string
 }
 
 variable "public_subnets" {
-  description = "IDs das subnets públicas para o ASG"
+  description = "Lista de IDs das subnets públicas"
   type        = list(string)
 }
 
 variable "target_group_arn" {
-  description = "ARN do target group para o ASG"
+  description = "ARN do target group do ALB"
+  type        = string
+}
+
+variable "alb_arn_suffix" {
+  description = "Suffix do ARN do ALB para métricas do CloudWatch"
   type        = string
 }
 

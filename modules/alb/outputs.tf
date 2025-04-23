@@ -11,4 +11,9 @@ output "dns_name" {
 output "security_group_id" {
   description = "ID do security group do ALB"
   value       = aws_security_group.alb.id
+}
+
+output "alb_arn_suffix" {
+  description = "Suffix do ARN do ALB para métricas do CloudWatch"
+  value       = aws_lb.web.arn_suffix
 } 

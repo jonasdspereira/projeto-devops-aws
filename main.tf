@@ -16,4 +16,5 @@ module "ec2_asg" {
   public_subnets       = module.vpc.public_subnets
   target_group_arn     = module.alb.target_group_arn
   alb_security_group_id = module.alb.security_group_id
+  alb_arn_suffix       = module.alb.alb_arn_suffix
 }
