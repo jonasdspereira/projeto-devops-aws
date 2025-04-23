@@ -6,4 +6,9 @@ output "target_group_arn" {
 output "dns_name" {
   description = "DNS name do Application Load Balancer"
   value       = aws_lb.web.dns_name
+}
+
+output "security_group_id" {
+  description = "ID do security group do ALB"
+  value       = aws_security_group.alb.id
 } 
