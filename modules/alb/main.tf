@@ -32,9 +32,21 @@ resource "aws_lb_target_group" "web" {
   vpc_id   = var.vpc_id
 
   health_check {
+    enabled             = true
     path                = "/"
+    port                = "traffic-port"
+    protocol            = "HTTP"
     healthy_threshold   = 2
-    unhealthy_threshold = 10
+    unhealthy_threshold = 3
+    timeout             = 5
+    interval            = 30
+    matcher             = "200"
+  }
+
+  stickiness {
+    type            = "lb_cookie"
+    cookie_duration = 86400
+    enabled         = true
   }
 }
 
