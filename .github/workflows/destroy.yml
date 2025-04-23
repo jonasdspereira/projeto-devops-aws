@@ -23,6 +23,8 @@ jobs:
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.5.0  # Mesma versão do workflow de criação
 
       - name: Terraform Init
         run: terraform init
@@ -32,10 +34,3 @@ jobs:
 
       - name: Terraform Destroy
         run: terraform apply -auto-approve destroy.tfplan
-
-      - name: Upload Destroy Logs
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: terraform-destroy-logs
-          path: .
