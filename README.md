@@ -1,23 +1,17 @@
 # Projeto DevOps AWS - Infraestrutura como Código
 
+## 👥 Equipe
+
+### Squad5 - Bootcamp DevOps
+
+| Nome                           | LinkedIn                                                  |
+| ------------------------------ | --------------------------------------------------------- |
+| Ereikson Mendes dos Santos     | [LinkedIn](https://www.linkedin.com/in/ereikson/)         |
+| Jonas de Souza Pereira         | [LinkedIn](https://www.linkedin.com/in/jnsprr/)           |
+| Karina Freitas Faqueti Sampaio | [LinkedIn](https://www.linkedin.com/in/kfreitas-sampaio/) |
+
 Este projeto implementa uma infraestrutura completa na AWS usando Terraform, com foco em alta disponibilidade, escalabilidade automática e boas práticas de DevOps.
 
-## 📋 Índice
-
-- [Visão Geral](#visão-geral)
-- [Arquitetura](#arquitetura)
-- [Estrutura do Projeto](#estrutura-do-projeto)
-- [Pré-requisitos](#pré-requisitos)
-- [Configuração Inicial](#configuração-inicial)
-- [Módulos](#módulos)
-- [CI/CD](#cicd)
-- [Segurança](#segurança)
-- [Monitoramento](#monitoramento)
-- [Manutenção](#manutenção)
-- [Solução de Problemas](#solução-de-problemas)
-- [Contribuição](#contribuição)
-- [Licença](#licença)
-- [Suporte](#suporte)
 
 ## 🌟 Visão Geral
 
