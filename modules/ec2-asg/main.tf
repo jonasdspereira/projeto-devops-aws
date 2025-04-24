@@ -92,7 +92,7 @@ resource "aws_launch_template" "web_server" {
     </head>
     <body>
         <div class='container'>
-            <h1>🚀 Bootcamp DevOps</h1>
+            <h1>🚀 Bootcamp DevOps!</h1>
             <div class='info-box'>
                 <div class='info-item'>
                     <strong>ID da Instância:</strong> 
